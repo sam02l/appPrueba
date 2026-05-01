@@ -1,2 +1,75 @@
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f172a">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>RFID App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      text-align: center;
+    }
+
+    header {
+      background: #1e293b;
+      padding: 20px;
+      font-size: 22px;
+    }
+
+    .card {
+      margin: 20px auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      background: #1e293b;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #22c55e;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<header>📡 Sistema RFID</header>
+
+<div class="card">
+  <h2>Estado</h2>
+  <p id="estado">Esperando tarjeta...</p>
+  <button onclick="simular()">Simular lectura</button>
+</div>
+
+<script>
+function simular() {
+  const estado = document.getElementById("estado");
+  estado.textContent = "Usuario detectado ✔️";
+}
+
+/* Registrar Service Worker */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("Service Worker registrado"))
+      .catch(err => console.log("Error:", err));
+  });
+}
+</script>
+
+</body>
+</html>
