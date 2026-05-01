@@ -1,5 +1,5 @@
 {
-  "name": "Sistema RFID",
+  "name": "RFID App",
   "short_name": "RFID",
   "start_url": "./index.html",
   "display": "standalone",
