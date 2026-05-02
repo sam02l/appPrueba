@@ -1,23 +1,44 @@
-const CACHE_NAME = "rfid-app-v2";
+import { db } from "./firebase.js";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const urlsToCache = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icono-192.png",
-  "./icono-512.png"
-];
+const lista = document.getElementById("eventos");
 
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
-});
+// 🔄 Cargar eventos
+async function cargarEventos() {
+  lista.innerHTML = "";
+  const querySnapshot = await getDocs(collection(db, "eventos"));
 
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
-});
+  querySnapshot.forEach((docu) => {
+    const data = docu.data();
+
+    const li = document.createElement("li");
+    li.textContent = `${data.fecha} - ${data.tipo} - ${data.usuario}`;
+
+    lista.appendChild(li);
+  });
+}
+
+cargarEventos();
+
+// 🔐 Cambiar PIN
+window.cambiarPIN = async () => {
+  const usuario = document.getElementById("usuario").value;
+  const nuevoPin = document.getElementById("nuevoPin").value;
+
+  const querySnapshot = await getDocs(collection(db, "usuarios"));
+
+  querySnapshot.forEach(async (docu) => {
+    if (docu.data().nombre === usuario) {
+      await updateDoc(doc(db, "usuarios", docu.id), {
+        pin: nuevoPin
+      });
+      alert("PIN actualizado");
+    }
+  });
+};
