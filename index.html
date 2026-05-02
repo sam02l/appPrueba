@@ -2,121 +2,37 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>App de Prueba</title>
+  <title>Panel de Seguridad</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0f172a">
+  <link rel="stylesheet" href="styles.css">
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
-      text-align: center;
-    }
-
-    header {
-      background: #1e293b;
-      padding: 20px;
-      font-size: 22px;
-    }
-
-    .card {
-      margin: 20px auto;
-      padding: 20px;
-      width: 90%;
-      max-width: 400px;
-      background: #1e293b;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-
-    button {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      background: #22c55e;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .led-on {
-      background: #ef4444;
-    }
-  </style>
 </head>
 <body>
 
-<header>📡APP de Pueba</header>
+  <header>
+    <h1>🔐 Sistema de Seguridad</h1>
+  </header>
 
-<div class="card">
-  <h2>Dato en tiempo real</h2>
-  <p id="estado">Cargando...</p>
-</div>
+  <main>
 
-<div class="card">
-  <h2>Control LED</h2>
-  <button id="btnLED" onclick="toggleLED()">Encender LED</button>
-</div>
+    <section class="card">
+      <h2>Eventos</h2>
+      <ul id="eventos"></ul>
+    </section>
 
-<script>
-/* 🔥 CONFIGURA ESTO CON TUS DATOS */
-const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  databaseURL: "https://pruebafirebase-a42ad-default-rtdb.firebaseio.com",
-  projectId: "TU_PROYECTO"
-};
+    <section class="card">
+      <h2>Cambiar PIN</h2>
+      <input type="text" id="usuario" placeholder="Usuario">
+      <input type="password" id="nuevoPin" placeholder="Nuevo PIN">
+      <button onclick="cambiarPIN()">Actualizar</button>
+    </section>
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+  </main>
 
-/* 🔹 Mostrar datos en tiempo real */
-db.ref("datos/valor").on("value", (snapshot) => {
-  const valor = snapshot.val();
-  document.getElementById("estado").textContent = "Valor: " + valor;
-});
-
-/* 🔹 Estado del LED */
-let estadoLED = 0;
-
-db.ref("led").on("value", (snapshot) => {
-  estadoLED = snapshot.val();
-
-  const btn = document.getElementById("btnLED");
-
-  if (estadoLED == 1) {
-    btn.textContent = "Apagar LED";
-    btn.classList.add("led-on");
-  } else {
-    btn.textContent = "Encender LED";
-    btn.classList.remove("led-on");
-  }
-});
-
-/* 🔹 Control del LED */
-function toggleLED() {
-  const nuevoEstado = estadoLED === 1 ? 0 : 1;
-  db.ref("led").set(nuevoEstado);
-}
-
-/* 🔹 Service Worker */
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("SW listo"))
-      .catch(err => console.log("Error SW:", err));
-  });
-}
-</script>
+  <script src="firebase.js" type="module"></script>
+  <script src="app.js" type="module"></script>
 
 </body>
 </html>
