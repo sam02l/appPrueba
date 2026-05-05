@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, limitToLast, query, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyB0SkvCuih7IseY6FTDWkUZq38ZxYQRr9g",
@@ -14,63 +14,71 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- GESTIÓN DE USUARIOS (REGISTRO Y LISTA) ---
+// --- MOSTRAR USUARIOS (CORREGIDO) ---
+const usuariosRef = ref(db, 'usuarios/');
+onValue(usuariosRef, (snapshot) => {
+    const tbody = document.getElementById('tabla-usuarios-body');
+    tbody.innerHTML = "";
+    
+    if (snapshot.exists()) {
+        snapshot.forEach((child) => {
+            const uid = child.key;
+            const user = child.val();
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr class="border-bottom border-secondary">
+                    <td>
+                        <div class="fw-bold">${user.nombre}</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">${uid}</div>
+                    </td>
+                    <td class="text-end">
+                        <button onclick="verPin('${user.pin}')" class="btn btn-sm btn-link text-info p-1">👁️</button>
+                        <button onclick="prepararEdicion('${uid}','${user.nombre}','${user.pin}')" class="btn btn-sm btn-link text-warning p-1">✏️</button>
+                        <button onclick="eliminarUser('${uid}')" class="btn btn-sm btn-link text-danger p-1">🗑️</button>
+                    </td>
+                </tr>
+            `);
+        });
+    } else {
+        tbody.innerHTML = "<tr><td class='text-center text-muted'>No hay usuarios registrados</td></tr>";
+    }
+});
 
+// --- GESTIÓN DE USUARIOS ---
 window.crearUsuario = function() {
-    const uid = document.getElementById('uid').value.replace(/\s/g, '').toUpperCase();
-    const nombre = document.getElementById('nombre').value.toUpperCase();
-    const pin = document.getElementById('pin').value;
+    const uid = document.getElementById('uid').value.trim().toUpperCase();
+    const nombre = document.getElementById('nombre').value.trim().toUpperCase();
+    const pin = document.getElementById('pin').value.trim();
 
     if(uid && nombre && pin.length === 4) {
         set(ref(db, 'usuarios/' + uid), { nombre, pin })
         .then(() => {
-            alert("✅ Usuario actualizado");
-            limpiarCampos();
+            alert("Base de datos sincronizada");
+            document.getElementById('uid').value = "";
+            document.getElementById('nombre').value = "";
+            document.getElementById('pin').value = "";
         });
     } else {
-        alert("❌ Completa los campos (PIN de 4 números)");
+        alert("Error: Revisa que el PIN tenga 4 números y el UID no esté vacío.");
     }
 };
-
-const usuariosRef = ref(db, 'usuarios');
-onValue(usuariosRef, (snapshot) => {
-    const tbody = document.getElementById('tabla-usuarios-body');
-    tbody.innerHTML = "";
-    snapshot.forEach((child) => {
-        const uid = child.key;
-        const user = child.val();
-        tbody.insertAdjacentHTML('beforeend', `
-            <tr>
-                <td>${user.nombre}</td>
-                <td><small class="text-muted">${uid}</small></td>
-                <td class="text-end">
-                    <button onclick="verPin('${user.pin}')" class="btn btn-sm btn-outline-info">👁️</button>
-                    <button onclick="prepararEdicion('${uid}','${user.nombre}','${user.pin}')" class="btn btn-sm btn-outline-warning">✏️</button>
-                    <button onclick="eliminarUser('${uid}')" class="btn btn-sm btn-outline-danger">🗑️</button>
-                </td>
-            </tr>
-        `);
-    });
-});
 
 window.eliminarUser = function(uid) {
-    if(confirm("¿Eliminar acceso para este UID?")) {
-        set(ref(db, 'usuarios/' + uid), null);
+    if(confirm("¿Revocar acceso permanentemente?")) {
+        remove(ref(db, 'usuarios/' + uid));
     }
 };
 
-window.verPin = function(pin) { alert("PIN actual: " + pin); };
+window.verPin = function(pin) { alert("PIN de acceso: " + pin); };
 
 window.prepararEdicion = function(uid, nombre, pin) {
     document.getElementById('uid').value = uid;
     document.getElementById('nombre').value = nombre;
     document.getElementById('pin').value = pin;
-    window.scrollTo({ top: 400, behavior: 'smooth' });
+    window.scrollTo({ top: 500, behavior: 'smooth' });
 };
 
-// --- MONITOR DE HISTORIAL ---
-
-const historialRef = query(ref(db, 'historial'), limitToLast(10));
+// --- HISTORIAL ---
+const historialRef = query(ref(db, 'historial'), limitToLast(15));
 onValue(historialRef, (snapshot) => {
     const list = document.getElementById('log-list');
     list.innerHTML = "";
@@ -78,27 +86,27 @@ onValue(historialRef, (snapshot) => {
         const data = child.val();
         list.insertAdjacentHTML('afterbegin', `
             <div class="log-entry">
-                <span class="timestamp">${data.timestamp}</span><br>
-                <b>${data.uid}</b>: ${data.evento}
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="fw-bold text-info">${data.uid}</span>
+                    <span class="timestamp">${data.timestamp}</span>
+                </div>
+                <div>${data.evento}</div>
             </div>
         `);
     });
 });
 
-// --- COMANDOS REMOTOS ---
-
-window.enviarComando = function(tipo) {
-    set(ref(db, 'comandos/' + tipo), true);
-    setTimeout(() => set(ref(db, 'comandos/' + tipo), false), 2000);
-    alert("Comando " + tipo + " enviado al ESP32");
+// --- LIMPIAR HISTORIAL ---
+window.limpiarHistorial = function() {
+    if(confirm("¿Deseas borrar todos los registros de actividad?")) {
+        remove(ref(db, 'historial'))
+        .then(() => alert("Historial borrado"));
+    }
 };
 
-function limpiarCampos() {
-    document.getElementById('uid').value = "";
-    document.getElementById('nombre').value = "";
-    document.getElementById('pin').value = "";
-}
-
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js');
-}
+// --- COMANDOS ---
+window.enviarComando = function(tipo) {
+    set(ref(db, 'comandos/' + tipo), true);
+    setTimeout(() => set(ref(db, 'comandos/' + tipo), false), 1500);
+    alert("Señal de " + tipo + " enviada.");
+};
