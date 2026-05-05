@@ -1,125 +1,51 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Sistema de Seguridad RFID</title>
-
-  <!-- Responsive -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0f172a" />
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-    }
-
-    header {
-      background: #020617;
-      padding: 15px;
-      text-align: center;
-      font-size: 20px;
-      font-weight: bold;
-      border-bottom: 2px solid #1e293b;
-    }
-
-    .container {
-      padding: 20px;
-      max-width: 900px;
-      margin: auto;
-    }
-
-    .card {
-      background: #020617;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    }
-
-    h2 {
-      margin-top: 0;
-      color: #38bdf8;
-    }
-
-    #estado {
-      font-size: 14px;
-      background: #020617;
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #1e293b;
-      white-space: pre-wrap;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    li {
-      padding: 10px;
-      border-bottom: 1px solid #1e293b;
-      font-size: 14px;
-    }
-
-    .btn {
-      background: #38bdf8;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      color: #020617;
-      margin-top: 10px;
-    }
-
-    .btn:hover {
-      background: #0ea5e9;
-    }
-
-    footer {
-      text-align: center;
-      padding: 10px;
-      font-size: 12px;
-      color: #94a3b8;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security IoT</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #0f0f0f; color: #e0e0e0; font-family: sans-serif; }
+        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 15px; }
+        .log-container { max-height: 400px; overflow-y: auto; background: #000; padding: 10px; border-radius: 10px; }
+        .log-entry { border-left: 3px solid #00d4ff; padding: 5px 10px; margin-bottom: 8px; font-size: 0.9rem; }
+        .timestamp { color: #00d4ff; font-weight: bold; }
+        .btn-panic { background: #ff4b2b; border: none; font-weight: bold; }
+    </style>
 </head>
-
 <body>
+    <div class="container py-4">
+        <h3 class="text-center mb-4">🛡️ Panel de Seguridad</h3>
 
-<header>
-  🔐 Sistema de Seguridad RFID
-</header>
+        <!-- Monitor de Historial -->
+        <div class="card p-3 mb-4">
+            <h6 class="text-info">Historial de Eventos</h6>
+            <div id="log-list" class="log-container">
+                <p class="text-muted text-center">Cargando eventos...</p>
+            </div>
+        </div>
 
-<div class="container">
+        <!-- Gestión de Usuarios -->
+        <div class="card p-3 mb-4">
+            <h6 class="text-warning">Registrar Nuevo Acceso</h6>
+            <input type="text" id="uid" class="form-control bg-dark text-white border-secondary mb-2" placeholder="UID (Ej: 334FFE0F)">
+            <input type="text" id="nombre" class="form-control bg-dark text-white border-secondary mb-2" placeholder="Nombre de Usuario">
+            <input type="number" id="pin" class="form-control bg-dark text-white border-secondary mb-2" placeholder="PIN de 4 dígitos">
+            <button onclick="crearUsuario()" class="btn btn-primary w-100">Guardar en Firebase</button>
+        </div>
 
-  <!-- ESTADO -->
-  <div class="card">
-    <h2>Estado del Sistema</h2>
-    <div id="estado">Cargando...</div>
-  </div>
+        <!-- Controles Remotos -->
+        <div class="row g-2">
+            <div class="col-6"><button onclick="comando('emergencia')" class="btn btn-panic w-100 py-3">PÁNICO</button></div>
+            <div class="col-6"><button onclick="comando('reset')" class="btn btn-secondary w-100 py-3">RESET</button></div>
+        </div>
+    </div>
 
-  <!-- EVENTOS -->
-  <div class="card">
-    <h2>Historial de Eventos</h2>
-    <ul id="eventos"></ul>
-    <button class="btn" onclick="crearEvento()">➕ Evento de prueba</button>
-  </div>
-
-</div>
-
-<footer>
-  Proyecto ESP32 + RFID + Firebase
-</footer>
-
-<!-- IMPORTANTE -->
-<script type="module" src="app.js"></script>
-
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
