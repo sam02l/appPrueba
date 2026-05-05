@@ -14,24 +14,25 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- LOGIN ---
+// --- SISTEMA DE LOGIN ---
 window.intentarLogin = function() {
     const userIn = document.getElementById('login-user').value.trim().toLowerCase();
-    const pinIn = document.getElementById('login-pin').value.trim();
+    const passIn = document.getElementById('login-pass').value.trim();
 
-    if(userIn === "admin" && pinIn === "1234") {
+    // Acceso Admin
+    if(userIn === "admin" && passIn === "1234") {
         mostrarPantalla("admin-view");
         cargarAdminData();
         return;
     }
 
-    const usuariosRef = ref(db, 'usuarios');
-    get(usuariosRef).then((snapshot) => {
+    // Acceso Usuario
+    get(ref(db, 'usuarios')).then((snapshot) => {
         let encontrado = false;
-        snapshot.forEach((userNode) => {
-            const data = userNode.val();
-            if(data.nombre.toLowerCase() === userIn && data.pin === pinIn) {
-                mostrarPerfilUsuario(userNode.key, data);
+        snapshot.forEach((child) => {
+            const d = child.val();
+            if(d.usuarioWeb === userIn && d.passWeb === passIn) {
+                mostrarPerfilUsuario(child.key, d);
                 encontrado = true;
             }
         });
@@ -50,45 +51,45 @@ function mostrarPerfilUsuario(uid, data) {
     document.getElementById('perfil-nombre').innerText = "Hola, " + data.nombre;
     document.getElementById('perfil-uid').innerText = uid;
     document.getElementById('perfil-pin').innerText = data.pin;
+    document.getElementById('perfil-acceso').innerText = data.ultimoAcceso || "Sin registros";
 }
 
 window.logout = function() { location.reload(); };
 
-// --- LOGICA DE ADMINISTRADOR ---
+// --- FUNCIONES DE ADMINISTRADOR ---
 function cargarAdminData() {
-    // 1. Cargar Historial
-    const historialRef = query(ref(db, 'historial'), limitToLast(10));
-    onValue(historialRef, (snapshot) => {
+    // Historial
+    onValue(query(ref(db, 'historial'), limitToLast(10)), (snapshot) => {
         const list = document.getElementById('log-list');
         list.innerHTML = "";
         snapshot.forEach((child) => {
             const data = child.val();
             list.insertAdjacentHTML('afterbegin', `
                 <div class="log-entry">
-                    <div class="d-flex justify-content-between small mb-1">
+                    <div class="d-flex justify-content-between mb-1">
                         <span class="fw-bold text-primary">${data.uid}</span>
-                        <span class="text-muted" style="font-size:0.7rem">${data.timestamp}</span>
+                        <span class="text-muted" style="font-size:0.65rem">${data.timestamp}</span>
                     </div>
-                    <div class="small">${data.evento}</div>
+                    <div>${data.evento}</div>
                 </div>
             `);
         });
     });
 
-    // 2. Cargar Tabla de Usuarios
-    const usuariosRef = ref(db, 'usuarios');
-    onValue(usuariosRef, (snapshot) => {
+    // Lista de Usuarios
+    onValue(ref(db, 'usuarios'), (snapshot) => {
         const tbody = document.getElementById('tabla-usuarios-body');
         tbody.innerHTML = "";
         snapshot.forEach((child) => {
             const uid = child.key;
-            const user = child.val();
+            const u = child.val();
             tbody.insertAdjacentHTML('beforeend', `
                 <tr>
-                    <td><div class="fw-bold">${user.nombre}</div><div class="text-muted small" style="font-size:0.65rem">${uid}</div></td>
+                    <td><b>${u.nombre}</b><br><small class="text-muted">User: ${u.usuarioWeb}</small></td>
+                    <td><small>${uid}</small><br><span class="badge bg-secondary">PIN: ${u.pin}</span></td>
                     <td class="text-end">
-                        <button onclick="verPin('${user.pin}')" class="btn btn-sm btn-link text-info">👁️</button>
-                        <button onclick="eliminarUser('${uid}')" class="btn btn-sm btn-link text-danger">🗑️</button>
+                        <button onclick="prepararEdicion('${uid}','${u.nombre}','${u.pin}','${u.usuarioWeb}','${u.passWeb}')" class="btn btn-sm btn-outline-warning">✏️</button>
+                        <button onclick="eliminarUser('${uid}')" class="btn btn-sm btn-outline-danger">🗑️</button>
                     </td>
                 </tr>
             `);
@@ -96,24 +97,34 @@ function cargarAdminData() {
     });
 }
 
-// --- ACCIONES ADMIN ---
 window.crearUsuario = function() {
     const uid = document.getElementById('uid').value.trim().toUpperCase();
-    const nombre = document.getElementById('nombre').value.trim().toUpperCase();
-    const pin = document.getElementById('pin').value.trim();
-    if(uid && nombre && pin.length === 4) {
-        set(ref(db, 'usuarios/' + uid), { nombre, pin }).then(() => {
-            alert("Acceso Sincronizado");
-            document.getElementById('uid').value = ""; document.getElementById('nombre').value = ""; document.getElementById('pin').value = "";
+    const nombre = document.getElementById('nombre').value.trim();
+    const pin = document.getElementById('pin_fisico').value.trim();
+    const uWeb = document.getElementById('user_web').value.trim().toLowerCase();
+    const pWeb = document.getElementById('pass_web').value.trim();
+
+    if(uid && nombre && pin && uWeb && pWeb) {
+        set(ref(db, 'usuarios/' + uid), {
+            nombre, pin, usuarioWeb: uWeb, passWeb: pWeb, ultimoAcceso: "Pendiente"
+        }).then(() => {
+            alert("Usuario sincronizado");
+            document.querySelectorAll('#admin-view input').forEach(i => i.value = "");
         });
-    }
+    } else { alert("Completa todos los campos"); }
 };
 
-window.eliminarUser = function(uid) { if(confirm("¿Borrar acceso?")) remove(ref(db, 'usuarios/' + uid)); };
-window.verPin = function(pin) { alert("PIN: " + pin); };
-window.limpiarHistorial = function() { if(confirm("¿Borrar historial?")) remove(ref(db, 'historial')); };
+window.prepararEdicion = function(uid, n, p, uw, pw) {
+    document.getElementById('uid').value = uid;
+    document.getElementById('nombre').value = n;
+    document.getElementById('pin_fisico').value = p;
+    document.getElementById('user_web').value = uw;
+    document.getElementById('pass_web').value = pw;
+};
+
+window.eliminarUser = function(uid) { if(confirm("¿Eliminar?")) remove(ref(db, 'usuarios/' + uid)); };
+window.limpiarHistorial = function() { if(confirm("¿Limpiar historial?")) remove(ref(db, 'historial')); };
 window.enviarComando = function(tipo) {
     set(ref(db, 'comandos/' + tipo), true);
     setTimeout(() => set(ref(db, 'comandos/' + tipo), false), 1500);
-    alert("Comando " + tipo + " enviado");
 };
