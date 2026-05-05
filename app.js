@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, get, remove, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyB0SkvCuih7IseY6FTDWkUZq38ZxYQRr9g",
@@ -14,19 +14,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- LÓGICA DE LOGIN ---
+// --- LOGIN ---
 window.intentarLogin = function() {
     const userIn = document.getElementById('login-user').value.trim().toLowerCase();
     const pinIn = document.getElementById('login-pin').value.trim();
 
-    // 1. Verificación de Administrador (Cámbialo aquí)
     if(userIn === "admin" && pinIn === "1234") {
         mostrarPantalla("admin-view");
         cargarAdminData();
         return;
     }
 
-    // 2. Verificación de Usuario en DB
     const usuariosRef = ref(db, 'usuarios');
     get(usuariosRef).then((snapshot) => {
         let encontrado = false;
@@ -56,11 +54,66 @@ function mostrarPerfilUsuario(uid, data) {
 
 window.logout = function() { location.reload(); };
 
-// --- CARGA DE DATOS PARA ADMIN (Tu código anterior adaptado) ---
+// --- LOGICA DE ADMINISTRADOR ---
 function cargarAdminData() {
-    // Aquí pondrías la lógica de onValue para la tabla y el historial 
-    // que ya tenemos funcionando, pero solo se activa si eres admin.
-    console.log("Cargando herramientas de administración...");
+    // 1. Cargar Historial
+    const historialRef = query(ref(db, 'historial'), limitToLast(10));
+    onValue(historialRef, (snapshot) => {
+        const list = document.getElementById('log-list');
+        list.innerHTML = "";
+        snapshot.forEach((child) => {
+            const data = child.val();
+            list.insertAdjacentHTML('afterbegin', `
+                <div class="log-entry">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="fw-bold text-primary">${data.uid}</span>
+                        <span class="text-muted" style="font-size:0.7rem">${data.timestamp}</span>
+                    </div>
+                    <div class="small">${data.evento}</div>
+                </div>
+            `);
+        });
+    });
+
+    // 2. Cargar Tabla de Usuarios
+    const usuariosRef = ref(db, 'usuarios');
+    onValue(usuariosRef, (snapshot) => {
+        const tbody = document.getElementById('tabla-usuarios-body');
+        tbody.innerHTML = "";
+        snapshot.forEach((child) => {
+            const uid = child.key;
+            const user = child.val();
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td><div class="fw-bold">${user.nombre}</div><div class="text-muted small" style="font-size:0.65rem">${uid}</div></td>
+                    <td class="text-end">
+                        <button onclick="verPin('${user.pin}')" class="btn btn-sm btn-link text-info">👁️</button>
+                        <button onclick="eliminarUser('${uid}')" class="btn btn-sm btn-link text-danger">🗑️</button>
+                    </td>
+                </tr>
+            `);
+        });
+    });
 }
 
-// (Sigue agregando aquí las funciones de crearUsuario, enviarComando, etc., que ya tenías)
+// --- ACCIONES ADMIN ---
+window.crearUsuario = function() {
+    const uid = document.getElementById('uid').value.trim().toUpperCase();
+    const nombre = document.getElementById('nombre').value.trim().toUpperCase();
+    const pin = document.getElementById('pin').value.trim();
+    if(uid && nombre && pin.length === 4) {
+        set(ref(db, 'usuarios/' + uid), { nombre, pin }).then(() => {
+            alert("Acceso Sincronizado");
+            document.getElementById('uid').value = ""; document.getElementById('nombre').value = ""; document.getElementById('pin').value = "";
+        });
+    }
+};
+
+window.eliminarUser = function(uid) { if(confirm("¿Borrar acceso?")) remove(ref(db, 'usuarios/' + uid)); };
+window.verPin = function(pin) { alert("PIN: " + pin); };
+window.limpiarHistorial = function() { if(confirm("¿Borrar historial?")) remove(ref(db, 'historial')); };
+window.enviarComando = function(tipo) {
+    set(ref(db, 'comandos/' + tipo), true);
+    setTimeout(() => set(ref(db, 'comandos/' + tipo), false), 1500);
+    alert("Comando " + tipo + " enviado");
+};
