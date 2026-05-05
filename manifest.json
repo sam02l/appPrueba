@@ -1,14 +1,14 @@
 {
-  "name": "Sistema RFID",
-  "short_name": "RFID",
-  "start_url": "/",
+  "name": "Seguridad IoT Samuel",
+  "short_name": "SeguroApp",
+  "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#0f172a",
+  "background_color": "#0f0f0f",
+  "theme_color": "#00d4ff",
   "icons": [
     {
-      "src": "icon.png",
-      "sizes": "192x192",
+      "src": "https://cdn-icons-png.flaticon.com/512/508/508281.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]
