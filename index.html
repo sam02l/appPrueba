@@ -3,49 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security IoT</title>
+    <title>Seguridad IoT - Samuel</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-        body { background: #0f0f0f; color: #e0e0e0; font-family: sans-serif; }
-        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 15px; }
-        .log-container { max-height: 400px; overflow-y: auto; background: #000; padding: 10px; border-radius: 10px; }
-        .log-entry { border-left: 3px solid #00d4ff; padding: 5px 10px; margin-bottom: 8px; font-size: 0.9rem; }
-        .timestamp { color: #00d4ff; font-weight: bold; }
-        .btn-panic { background: #ff4b2b; border: none; font-weight: bold; }
+        body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 15px; margin-bottom: 20px; }
+        .log-container { max-height: 350px; overflow-y: auto; background: #000; padding: 15px; border-radius: 10px; border: 1px solid #444; }
+        .log-entry { border-left: 3px solid #00d4ff; padding-left: 10px; margin-bottom: 12px; font-size: 0.85rem; }
+        .timestamp { color: #00d4ff; font-weight: bold; display: block; }
+        .btn-panic { background: #ff4b2b; color: white; border: none; font-weight: bold; }
+        .btn-panic:active { background: #d32f2f; }
     </style>
 </head>
 <body>
     <div class="container py-4">
-        <h3 class="text-center mb-4">🛡️ Panel de Seguridad</h3>
+        <h2 class="text-center mb-4">🛡️ Central de Seguridad</h2>
 
-        <!-- Monitor de Historial -->
-        <div class="card p-3 mb-4">
-            <h6 class="text-info">Historial de Eventos</h6>
+        <!-- Monitor en Tiempo Real -->
+        <div class="card p-3">
+            <h6 class="text-info mb-3">Historial de Accesos</h6>
             <div id="log-list" class="log-container">
-                <p class="text-muted text-center">Cargando eventos...</p>
+                <p class="text-muted text-center">Conectando con el sistema...</p>
             </div>
         </div>
 
-        <!-- Gestión de Usuarios -->
-        <div class="card p-3 mb-4">
-            <h6 class="text-warning">Registrar Nuevo Acceso</h6>
-            <input type="text" id="uid" class="form-control bg-dark text-white border-secondary mb-2" placeholder="UID (Ej: 334FFE0F)">
-            <input type="text" id="nombre" class="form-control bg-dark text-white border-secondary mb-2" placeholder="Nombre de Usuario">
-            <input type="number" id="pin" class="form-control bg-dark text-white border-secondary mb-2" placeholder="PIN de 4 dígitos">
-            <button onclick="crearUsuario()" class="btn btn-primary w-100">Guardar en Firebase</button>
+        <!-- Registro de Usuarios -->
+        <div class="card p-3">
+            <h6 class="text-warning mb-3">Registrar Nuevo Usuario</h6>
+            <div class="mb-2">
+                <input type="text" id="uid" class="form-control bg-dark text-white border-secondary" placeholder="UID (Ej: 334FFE0F)">
+            </div>
+            <div class="mb-2">
+                <input type="text" id="nombre" class="form-control bg-dark text-white border-secondary" placeholder="Nombre">
+            </div>
+            <div class="mb-3">
+                <input type="password" id="pin" class="form-control bg-dark text-white border-secondary" placeholder="PIN (4 dígitos)" maxlength="4">
+            </div>
+            <button onclick="crearUsuario()" class="btn btn-primary w-100">Sincronizar con Hardware</button>
         </div>
 
-        <!-- Controles Remotos -->
+        <!-- Botones de Control -->
         <div class="row g-2">
-            <div class="col-6"><button onclick="comando('emergencia')" class="btn btn-panic w-100 py-3">PÁNICO</button></div>
-            <div class="col-6"><button onclick="comando('reset')" class="btn btn-secondary w-100 py-3">RESET</button></div>
+            <div class="col-6"><button onclick="enviarComando('emergencia')" class="btn btn-panic w-100 py-3">PÁNICO</button></div>
+            <div class="col-6"><button onclick="enviarComando('reset')" class="btn btn-secondary w-100 py-3">RESET</button></div>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="app.js"></script>
+    <!-- Lógica de Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB0SkvCuih7IseY6FTDWkUZq38ZxYQRr9g",
+            authDomain: "pruebafirebase-a42ad.firebaseapp.com",
+            databaseURL: "https://pruebafirebase-a42ad-default-rtdb.firebaseio.com",
+            projectId: "pruebafirebase-a42ad",
+            storageBucket: "pruebafirebase-a42ad.firebasestorage.app",
+            messagingSenderId: "813187669583",
+            appId: "1:813187669583:web:d3cee86532217f79e1143a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- FUNCIÓN: CREAR USUARIO ---
+        window.crearUsuario = function() {
+            const uid = document.getElementById('uid').value.replace(/\s/g, '').toUpperCase();
+            const nombre = document.getElementById('nombre').value.toUpperCase();
+            const pin = document.getElementById('pin').value;
+
+            if(uid && nombre && pin.length === 4) {
+                set(ref(db, 'usuarios/' + uid), { nombre, pin })
+                .then(() => {
+                    alert("✅ Usuario " + nombre + " agregado.");
+                    document.getElementById('uid').value = "";
+                    document.getElementById('nombre').value = "";
+                    document.getElementById('pin').value = "";
+                });
+            } else {
+                alert("❌ Por favor llena todos los campos correctamente.");
+            }
+        };
+
+        // --- FUNCIÓN: ENVIAR COMANDOS ---
+        window.enviarComando = function(tipo) {
+            set(ref(db, 'comandos/' + tipo), true);
+            setTimeout(() => set(ref(db, 'comandos/' + tipo), false), 2000);
+        };
+
+        // --- MONITOR: ESCUCHAR HISTORIAL ---
+        const historialRef = query(ref(db, 'historial'), limitToLast(10));
+        onValue(historialRef, (snapshot) => {
+            const list = document.getElementById('log-list');
+            list.innerHTML = "";
+            snapshot.forEach((child) => {
+                const data = child.val();
+                const html = `
+                    <div class="log-entry">
+                        <span class="timestamp">${data.timestamp}</span>
+                        <b>${data.uid}</b>: ${data.evento}
+                    </div>`;
+                list.insertAdjacentHTML('afterbegin', html);
+            });
+        });
+    </script>
 </body>
 </html>
