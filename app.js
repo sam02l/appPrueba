@@ -1,60 +1,52 @@
-// app.js
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-// 🔴 PEGA AQUÍ TU CONFIG DE FIREBASE
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "pruebafirebase-a42ad.firebaseapp.com",
-  databaseURL: "https://pruebafirebase-a42ad-default-rtdb.firebaseio.com",
-  projectId: "pruebafirebase-a42ad",
+    apiKey: "TU_API_KEY",
+    authDomain: "pruebafirebase-a42ad.firebaseapp.com",
+    databaseURL: "https://pruebafirebase-a42ad-default-rtdb.firebaseio.com",
+    projectId: "pruebafirebase-a42ad",
+    storageBucket: "pruebafirebase-a42ad.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
 };
 
-// Inicializar
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-// ============================
-// VER ESTADO
-// ============================
-const estadoRef = ref(db, "estado");
-
-onValue(estadoRef, (snapshot) => {
-  const data = snapshot.val();
-  document.getElementById("estado").innerText =
-    data ? JSON.stringify(data, null, 2) : "Sin datos";
+// Escuchar Historial
+db.ref('historial').limitToLast(15).on('value', (snap) => {
+    const list = document.getElementById('log-list');
+    list.innerHTML = "";
+    snap.forEach((child) => {
+        const val = child.val();
+        list.insertAdjacentHTML('afterbegin', `
+            <div class="log-entry">
+                <span class="timestamp">${val.timestamp}</span><br>
+                <b>${val.uid}</b>: ${val.evento}
+            </div>
+        `);
+    });
 });
 
-// ============================
-// VER EVENTOS
-// ============================
-const eventosRef = ref(db, "eventos");
+// Crear Usuario
+function crearUsuario() {
+    const uid = document.getElementById('uid').value.replace(/\s/g, '').toUpperCase();
+    const nombre = document.getElementById('nombre').value.toUpperCase();
+    const pin = document.getElementById('pin').value;
 
-onValue(eventosRef, (snapshot) => {
-  const data = snapshot.val();
-  const lista = document.getElementById("eventos");
+    if(uid && nombre && pin.length == 4) {
+        db.ref('usuarios/' + uid).set({ nombre, pin })
+        .then(() => alert("Usuario " + nombre + " sincronizado."));
+    } else {
+        alert("Llena todos los campos correctamente.");
+    }
+}
 
-  lista.innerHTML = "";
+// Comandos Remotos
+function comando(tipo) {
+    db.ref('comandos/' + tipo).set(true);
+    setTimeout(() => db.ref('comandos/' + tipo).set(false), 2000);
+}
 
-  if (!data) return;
-
-  Object.keys(data).reverse().forEach(key => {
-    const evento = data[key];
-
-    const li = document.createElement("li");
-    li.textContent = `${evento.tipo} - ${evento.usuario || "?"}`;
-    lista.appendChild(li);
-  });
-});
-
-// ============================
-// BOTÓN DE PRUEBA
-// ============================
-window.crearEvento = function () {
-  push(eventosRef, {
-    tipo: "PRUEBA_WEB",
-    usuario: "admin",
-    timestamp: Date.now()
-  });
-};
+// Registro de Service Worker para PWA
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+}
